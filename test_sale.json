@@ -1,0 +1,22 @@
+{
+  "outlet_id": 5,
+  "sold_at": "2025-09-13T04:41:00Z",
+  "items": [
+    {
+      "product_id": 9,
+      "price": 5000,
+      "qty": 2,
+      "discount": 0
+    }
+  ],
+  "discount_total": 0,
+  "tax_percent": 10,
+  "rounding": 0,
+  "payments": [
+    {
+      "method": "CASH",
+      "amount": 11000
+    }
+  ],
+  "note": "Test sale"
+}
