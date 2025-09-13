@@ -28,6 +28,33 @@ Route::get('/admin/login', function() {
     return redirect('/login');
 });
 
+// Admin authentication session handler
+Route::post('/admin/authenticate', function(\Illuminate\Http\Request $request) {
+    // Validate token from localStorage
+    $token = $request->input('token');
+    
+    if (!$token) {
+        return response()->json(['error' => 'No token provided'], 401);
+    }
+    
+    // Find the token in the database
+    $accessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+    
+    if (!$accessToken || !$accessToken->tokenable) {
+        return response()->json(['error' => 'Invalid token'], 401);
+    }
+    
+    // Log the user in for the session
+    auth()->login($accessToken->tokenable);
+    $request->session()->put('admin_token', $token);
+    
+    return response()->json([
+        'success' => true, 
+        'user' => $accessToken->tokenable,
+        'message' => 'Authenticated successfully'
+    ]);
+})->name('admin.authenticate');
+
 // POS Interface
 Route::get('/pos', function () {
     return view('pos', [
@@ -459,24 +486,27 @@ Route::prefix('admin')->group(function () {
             ->with('success', 'User "' . $user->name . '" updated successfully!');
     })->name('admin.users.update');
     
-    // Profile Management (Simple real interface)
-    Route::get('profile', function() {
-        return view('admin.simple-page', [
-            'title' => 'My Profile', 
-            'description' => 'Edit your profile information',
-            'content' => 'Profile management interface will be implemented here. Current user data and edit forms would be available.',
-            'features' => ['Update personal information', 'Change password', 'Upload profile photo', 'Notification preferences']
-        ]);
-    })->name('admin.profile');
+    // Profile Management Routes
+    Route::middleware('auth.admin')->group(function () {
+        Route::get('profile', [\App\Http\Controllers\AdminUserController::class, 'profile'])->name('admin.profile');
+        Route::put('profile', [\App\Http\Controllers\AdminUserController::class, 'updateProfile'])->name('admin.profile.update');
+        Route::put('profile/password', [\App\Http\Controllers\AdminUserController::class, 'changePassword'])->name('admin.profile.change-password');
+        Route::put('profile/avatar', [\App\Http\Controllers\AdminUserController::class, 'updateAvatar'])->name('admin.profile.avatar');
+    });
     
-    // Settings (Simple real interface)
-    Route::get('settings', function() {
-        $outlet = \App\Models\Outlet::first();
-        return view('admin.simple-page', [
-            'title' => 'Settings', 
-            'description' => 'System and outlet configuration',
-            'content' => 'System settings for outlet: ' . ($outlet->name ?? 'No Outlet'),
-            'features' => ['Outlet information', 'Tax settings', 'Receipt templates', 'Payment methods', 'Backup & export']
-        ]);
-    })->name('admin.settings');
+    // Settings Management Routes
+    Route::middleware('auth.admin')->group(function () {
+        Route::get('settings', [\App\Http\Controllers\AdminSettingsController::class, 'index'])->name('admin.settings');
+        Route::put('settings/outlet', [\App\Http\Controllers\AdminSettingsController::class, 'updateOutlet'])->name('admin.settings.outlet.update');
+        Route::put('settings', [\App\Http\Controllers\AdminSettingsController::class, 'updateSettings'])->name('admin.settings.update');
+        
+        // Category management
+        Route::post('settings/categories', [\App\Http\Controllers\AdminSettingsController::class, 'createCategory'])->name('admin.settings.categories.create');
+        Route::put('settings/categories/{category}', [\App\Http\Controllers\AdminSettingsController::class, 'updateCategory'])->name('admin.settings.categories.update');
+        Route::delete('settings/categories/{category}', [\App\Http\Controllers\AdminSettingsController::class, 'deleteCategory'])->name('admin.settings.categories.delete');
+        
+        // System tools
+        Route::post('settings/backup', [\App\Http\Controllers\AdminSettingsController::class, 'backup'])->name('admin.settings.backup');
+        Route::delete('settings/cache', [\App\Http\Controllers\AdminSettingsController::class, 'clearCache'])->name('admin.settings.cache.clear');
+    });
 });

@@ -13,7 +13,10 @@ class Category extends Model
     protected $fillable = [
         'name',
         'code',
+        'description',
     ];
+    
+    protected $withCount = ['products'];
 
     public function products(): HasMany
     {

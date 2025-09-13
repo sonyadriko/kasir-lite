@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Kasir Lite</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 </head>
 <body class="bg-gray-100">
     <div x-data="{
-        checkAuth() {
+        async checkAuth() {
             const token = localStorage.getItem('pos_token');
             const user = localStorage.getItem('pos_user');
             const expires = localStorage.getItem('pos_token_expires');
@@ -30,14 +31,38 @@
             // Parse user data
             try {
                 const userData = JSON.parse(user);
-                // Set the user data in sessionStorage for Laravel to access
-                sessionStorage.setItem('admin_user', JSON.stringify(userData));
                 
-                // Redirect to actual dashboard with user data
-                window.location.href = '/admin/dashboard';
+                // Authenticate with Laravel session
+                const response = await fetch('/admin/authenticate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name=\"csrf-token\"]')?.getAttribute('content') || ''
+                    },
+                    body: JSON.stringify({
+                        token: token
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Authentication successful:', data.message);
+                    
+                    // Set the user data in sessionStorage for Laravel to access
+                    sessionStorage.setItem('admin_user', JSON.stringify(userData));
+                    
+                    // Redirect to actual dashboard with user data
+                    window.location.href = '/admin/dashboard';
+                } else {
+                    console.error('Failed to authenticate with Laravel session');
+                    // Still try to redirect - the middleware will handle auto-login in dev mode
+                    window.location.href = '/admin/dashboard';
+                }
             } catch (error) {
-                console.error('Failed to parse user data:', error);
-                window.location.href = '/login';
+                console.error('Authentication error:', error);
+                // Try to redirect anyway - middleware will handle it
+                window.location.href = '/admin/dashboard';
             }
         }
     }" x-init="checkAuth()">
