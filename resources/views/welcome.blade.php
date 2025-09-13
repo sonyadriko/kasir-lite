@@ -20,6 +20,9 @@
                 <a href="/pos" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg shadow-lg transition duration-300">
                     Open POS System
                 </a>
+                <a href="/admin" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-8 rounded-lg shadow-lg transition duration-300">
+                    Admin Dashboard
+                </a>
                 <a href="/receipt/1" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-8 rounded-lg shadow-lg transition duration-300">
                     View Sample Receipt
                 </a>
